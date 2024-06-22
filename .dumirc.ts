@@ -163,10 +163,10 @@ export default defineConfig({
     })();
     `,
   ],
-  scripts: [
-    {
-      async: true,
-      content: fs.readFileSync(path.join(__dirname, '.dumi', 'mirror-modal.js')).toString(),
-    },
-  ],
+  // scripts: [
+  //   {
+  //     async: true,
+  //     content: fs.readFileSync(path.join(__dirname, '.dumi', 'mirror-modal.js')).toString(),
+  //   },
+  // ],
 });
