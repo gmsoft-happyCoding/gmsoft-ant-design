@@ -94,10 +94,12 @@ const columns = [
 <code src="./demo/edit-row.tsx">可编辑行</code>
 <code src="./demo/nested-table.tsx">嵌套子表格</code>
 <code src="./demo/drag-sorting.tsx">拖拽排序</code>
+<code src="./demo/drag-column-sorting.tsx">列拖拽排序</code>
 <code src="./demo/drag-sorting-handler.tsx">拖拽手柄列</code>
 <code src="./demo/resizable-column.tsx" debug>可伸缩列</code>
 <code src="./demo/ellipsis.tsx">单元格自动省略</code>
 <code src="./demo/ellipsis-custom-tooltip.tsx">自定义单元格省略提示</code>
+<code src="./demo/custom-empty.tsx">自定义空状态</code>
 <code src="./demo/summary.tsx">总结栏</code>
 <code src="./demo/virtual-list.tsx" version=">= 5.9.0">虚拟列表</code>
 <code src="./demo/responsive.tsx">响应式</code>
@@ -255,7 +257,7 @@ const columns = [
 | indentSize | 展示树形数据时，每层缩进的宽度，以 px 为单位 | number | 15 |  |
 | rowExpandable | 设置是否允许行展开 | (record) => boolean | - |  |
 | showExpandColumn | 设置是否展示行展开列 | boolean | true | 4.18.0 |
-| onExpand | 点击展开图标时触发 | function(record, event) | - |  |
+| onExpand | 点击展开图标时触发 | function(expanded, record) | - |  |
 | onExpandedRowsChange | 展开的行变化时触发 | function(expandedRows) | - |  |
 
 ### rowSelection
@@ -305,14 +307,14 @@ const columns = [
 ```tsx
 import React from 'react';
 import { Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { TableColumnsType } from 'antd';
 
 interface User {
   key: number;
   name: string;
 }
 
-const columns: ColumnsType<User> = [
+const columns: TableColumnsType<User> = [
   {
     key: 'name',
     title: 'Name',

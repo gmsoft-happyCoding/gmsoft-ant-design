@@ -43,7 +43,7 @@ const useStyle = createStyles(({ token }) => ({
     align-items: center;
     column-gap: ${token.paddingXXS}px;
     border-radius: ${token.borderRadiusSM}px;
-    padding-inline: ${token.paddingXS}px;
+    padding-inline: ${token.paddingXXS}px;
     transition: all ${token.motionDurationSlow} !important;
     font-family: ${token.codeFamily};
     color: ${token.colorTextSecondary} !important;
@@ -62,6 +62,7 @@ const useStyle = createStyles(({ token }) => ({
   `,
   from: css`
     color: ${token.magenta8};
+    margin-inline-end: 0.5em;
   `,
   antd: css`
     color: ${token.green8};
@@ -115,12 +116,21 @@ const ComponentMeta: React.FC<ComponentMetaProps> = (props) => {
     return [source, source];
   }, [component, source]);
 
+  const transformComponentName = (componentName: string) => {
+    if (componentName === 'Notifiction' || componentName === 'Message') {
+      return componentName.toLowerCase();
+    }
+    return componentName;
+  };
+
   // ======================== Render ========================
   const importList = [
     <span key="import" className={styles.import}>
       import
     </span>,
-    <span key="component" className={styles.component}>{`{ ${component} }`}</span>,
+    <span key="component" className={styles.component}>{`{ ${transformComponentName(
+      component,
+    )} }`}</span>,
     <span key="from" className={styles.from}>
       from
     </span>,
@@ -138,25 +148,23 @@ const ComponentMeta: React.FC<ComponentMetaProps> = (props) => {
       colon={false}
       column={1}
       style={{ marginTop: token.margin }}
-      labelStyle={{ paddingInlineEnd: token.padding, width: 54 }}
+      labelStyle={{ paddingInlineEnd: token.padding, width: 56 }}
       items={
         [
           {
             label: locale.import,
             children: (
-              <Tooltip
-                placement="right"
-                title={copied ? locale.copied : locale.copy}
-                onOpenChange={onOpenChange}
-              >
-                <span>
-                  <CopyToClipboard text={`import { ${component} } from "antd";`} onCopy={onCopy}>
-                    <Typography.Text className={styles.code} onClick={onCopy}>
-                      {importList}
-                    </Typography.Text>
-                  </CopyToClipboard>
-                </span>
-              </Tooltip>
+              <CopyToClipboard text={`import { ${component} } from "antd";`} onCopy={onCopy}>
+                <Tooltip
+                  placement="right"
+                  title={copied ? locale.copied : locale.copy}
+                  onOpenChange={onOpenChange}
+                >
+                  <Typography.Text className={styles.code} onClick={onCopy}>
+                    {importList}
+                  </Typography.Text>
+                </Tooltip>
+              </CopyToClipboard>
             ),
           },
           filledSource && {

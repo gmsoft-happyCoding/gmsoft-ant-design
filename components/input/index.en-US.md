@@ -71,6 +71,7 @@ Common props ref：[Common props](/docs/react/common-props)
 | variant | Variants of Input | `outlined` \| `borderless` \| `filled` | `outlined` | 5.13.0 |
 | onChange | Callback when user input | function(e) | - |  |
 | onPressEnter | The callback function that is triggered when Enter key is pressed | function(e) | - |  |
+| onClear | Callback when click the clear button | () => void | - | 5.20.0 |
 
 > When `Input` is used in a `Form.Item` context, if the `Form.Item` has the `id` props defined then `value`, `defaultValue`, and `id` props of `Input` are automatically set.
 
@@ -124,11 +125,16 @@ Supports all props of `Input`.
 
 Added in `5.16.0`.
 
+> Notes for developers
+>
+> When the `mask` prop is string, we recommend receiving a single character or a single emoji. If multiple characters or multiple emoji are passed, a warning will be thrown.
+
 | Property | Description | Type | Default | Version |
 | --- | --- | --- | --- | --- |
 | defaultValue | Default value | string | - |  |
 | disabled | Whether the input is disabled | boolean | false |  |
 | formatter | Format display, blank fields will be filled with ` ` | (value: string) => string | - |  |
+| mask | Custom display, the original value will not be modified | boolean \| string | `false` | `5.17.0` |
 | length | The number of input elements | number | 6 |  |
 | status | Set validation status | 'error' \| 'warning' | - |  |
 | size | The size of the input box | `small` \| `middle` \| `large` | `middle` |  |

@@ -460,7 +460,7 @@ describe('Upload', () => {
       url: 'http://www.baidu.com/xxx.png',
     };
 
-    let removePromise: (value: boolean | Promise<void | boolean>) => void;
+    let removePromise: (value: boolean | Promise<undefined | boolean>) => void;
 
     const onRemove: UploadProps['onRemove'] = () =>
       new Promise((resolve) => {
@@ -1081,5 +1081,12 @@ describe('Upload', () => {
     fileListOut.forEach((file) => {
       expect(file.status).toBe('done');
     });
+  });
+
+  it('container ref', () => {
+    const ref = React.createRef<any>();
+    render(<Upload ref={ref} />);
+    expect(ref.current?.nativeElement).toBeTruthy();
+    expect(ref.current?.nativeElement instanceof HTMLElement).toBeTruthy();
   });
 });

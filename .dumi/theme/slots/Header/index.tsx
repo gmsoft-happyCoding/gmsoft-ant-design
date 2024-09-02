@@ -8,7 +8,7 @@ import { useLocation, useSiteData } from 'dumi';
 import DumiSearchBar from 'dumi/theme-default/slots/SearchBar';
 
 import useLocale from '../../../hooks/useLocale';
-import DirectionIcon from '../../common/DirectionIcon';
+import DirectionIcon from '../../icons/DirectionIcon';
 import { ANT_DESIGN_NOT_SHOW_BANNER } from '../../layouts/GlobalLayout';
 import * as utils from '../../utils';
 import { getThemeConfig } from '../../utils';
@@ -51,14 +51,14 @@ const useStyle = createStyles(({ token, css }) => {
 
       @media only screen and (max-width: ${token.mobileMaxWidth}px) {
         text-align: center;
-      }
-
-      .nav-search-wrapper {
-        display: flex;
-        flex: auto;
+        border: none;
       }
 
       .dumi-default-search-bar {
+        display: inline-flex;
+        align-items: center;
+        flex: auto;
+        margin: 0;
         border-inline-start: 1px solid rgba(0, 0, 0, 0.06);
 
         > svg {
@@ -69,6 +69,7 @@ const useStyle = createStyles(({ token, css }) => {
         > input {
           height: 22px;
           border: 0;
+          max-width: calc(100vw - 768px);
 
           &:focus {
             box-shadow: none;
@@ -84,15 +85,21 @@ const useStyle = createStyles(({ token, css }) => {
           background-color: rgba(150, 150, 150, 0.06);
           border-color: rgba(100, 100, 100, 0.2);
           border-radius: ${token.borderRadiusSM}px;
+          position: static;
+          top: unset;
+          transform: unset;
         }
 
         .dumi-default-search-popover {
-          inset-inline-start: 11px;
+          inset-inline-start: ${token.paddingSM}px;
           inset-inline-end: unset;
-
           &::before {
             inset-inline-start: 100px;
             inset-inline-end: unset;
+          }
+          & > section {
+            scrollbar-width: thin;
+            scrollbar-color: unset;
           }
         }
       }
@@ -102,16 +109,15 @@ const useStyle = createStyles(({ token, css }) => {
       align-items: center;
       margin: 0;
       column-gap: ${token.paddingSM}px;
+      padding-inline-end: ${token.padding}px;
+
       > * {
         flex: none;
         margin: 0;
-        &:last-child {
-          margin-inline-end: 40px;
-        }
       }
     `,
     dataDirectionIcon: css`
-      width: 16px;
+      width: 20px;
     `,
     popoverMenu: {
       width: 300,
@@ -174,9 +180,6 @@ const Header: React.FC = () => {
   }, []);
   const onWindowResize = useCallback(() => {
     setHeaderState((prev) => ({ ...prev, windowWidth: window.innerWidth }));
-  }, []);
-  const handleShowMenu = useCallback(() => {
-    setHeaderState((prev) => ({ ...prev, menuVisible: true }));
   }, []);
   const onMenuVisibleChange = useCallback((visible: boolean) => {
     setHeaderState((prev) => ({ ...prev, menuVisible: visible }));
@@ -362,7 +365,7 @@ const Header: React.FC = () => {
           arrow={{ pointAtCenter: true }}
           onOpenChange={onMenuVisibleChange}
         >
-          <MenuOutlined className="nav-phone-icon" onClick={handleShowMenu} />
+          <MenuOutlined className="nav-phone-icon" />
         </Popover>
       )}
       {isZhCN && bannerVisible && (
@@ -407,11 +410,11 @@ const Header: React.FC = () => {
         <Col {...colProps[0]}>
           <Logo {...sharedProps} location={location} />
         </Col>
-        <Col {...colProps[1]} className={styles.menuRow}>
-          <div className="nav-search-wrapper">
+        <Col {...colProps[1]}>
+          <div className={styles.menuRow}>
             <DumiSearchBar />
+            {!isMobile && menu}
           </div>
-          {!isMobile && menu}
         </Col>
       </Row>
     </header>

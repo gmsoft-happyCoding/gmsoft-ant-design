@@ -60,6 +60,7 @@ const localeValues: Locale = {
     selectCurrent: '全选当页',
     removeCurrent: '删除当页',
     selectAll: '全选所有',
+    deselectAll: '取消全选',
     removeAll: '删除全部',
     selectInvert: '反选当页',
   },
@@ -143,6 +144,9 @@ const localeValues: Locale = {
   },
   ColorPicker: {
     presetEmpty: '暂无',
+    transparent: '无色',
+    singleColor: '单色',
+    gradientColor: '渐变色',
   },
 };
 

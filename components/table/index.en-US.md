@@ -93,10 +93,12 @@ const columns = [
 <code src="./demo/edit-row.tsx">Editable Rows</code>
 <code src="./demo/nested-table.tsx">Nested tables</code>
 <code src="./demo/drag-sorting.tsx">Drag sorting</code>
+<code src="./demo/drag-column-sorting.tsx">Drag Column sorting</code>
 <code src="./demo/drag-sorting-handler.tsx">Drag sorting with handler</code>
 <code src="./demo/resizable-column.tsx" debug>Resizable column</code>
 <code src="./demo/ellipsis.tsx">ellipsis column</code>
 <code src="./demo/ellipsis-custom-tooltip.tsx">ellipsis column custom tooltip</code>
+<code src="./demo/custom-empty.tsx">Custom empty</code>
 <code src="./demo/summary.tsx">Summary</code>
 <code src="./demo/virtual-list.tsx" version=">= 5.9.0">Virtual list</code>
 <code src="./demo/responsive.tsx">Responsive</code>
@@ -254,7 +256,7 @@ Properties for expandable.
 | indentSize | Indent size in pixels of tree data | number | 15 |  |
 | rowExpandable | Enable row can be expandable | (record) => boolean | - |  |
 | showExpandColumn | Show expand column | boolean | true | 4.18.0 |
-| onExpand | Callback executed when the row expand icon is clicked | function(record, event) | - |  |
+| onExpand | Callback executed when the row expand icon is clicked | function(expanded, record) | - |  |
 | onExpandedRowsChange | Callback executed when the expanded rows change | function(expandedRows) | - |  |
 
 ### rowSelection
@@ -287,7 +289,7 @@ Properties for row selection.
 | Property | Description | Type | Default |
 | --- | --- | --- | --- |
 | scrollToFirstRowOnChange | Whether to scroll to the top of the table when paging, sorting, filtering changes | boolean | - |
-| x | Set horizontal scrolling, can also be used to specify the width of the scroll area, could be number, percent value, true and ['max-content'](https://developer.mozilla.org/zh-CN/docs/Web/CSS/width#max-content) | string \| number \| true | - |
+| x | Set horizontal scrolling, can also be used to specify the width of the scroll area, could be number, percent value, true and ['max-content'](https://developer.mozilla.org/en-US/docs/Web/CSS/width#max-content) | string \| number \| true | - |
 | y | Set vertical scrolling, can also be used to specify the height of the scroll area, could be string or number | string \| number | - |
 
 ### selection
@@ -303,14 +305,14 @@ Properties for row selection.
 ```tsx
 import React from 'react';
 import { Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { TableColumnsType } from 'antd';
 
 interface User {
   key: number;
   name: string;
 }
 
-const columns: ColumnsType<User> = [
+const columns: TableColumnsType<User> = [
   {
     key: 'name',
     title: 'Name',

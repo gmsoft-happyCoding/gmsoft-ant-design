@@ -1,8 +1,7 @@
 import React from 'react';
-import { act } from 'react-dom/test-utils';
 
 import { resetWarned } from '../../_util/warning';
-import { fireEvent, render, waitFakeTimer } from '../../../tests/utils';
+import { act, fireEvent, render, waitFakeTimer } from '../../../tests/utils';
 
 describe('Collapse', () => {
   // eslint-disable-next-line global-require
@@ -157,7 +156,7 @@ describe('Collapse', () => {
     jest.useFakeTimers();
     const spiedRAF = jest
       .spyOn(window, 'requestAnimationFrame')
-      .mockImplementation((cb) => setTimeout(cb, 16.66));
+      .mockImplementation((cb) => setTimeout(cb, 1000 / 60));
 
     let setActiveKeyOuter: React.Dispatch<React.SetStateAction<React.Key | undefined>>;
     const Test: React.FC = () => {
@@ -251,5 +250,29 @@ describe('Collapse', () => {
       </Collapse>,
     );
     expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('Check expandIcon aria-label value', () => {
+    const { container, rerender } = render(
+      <Collapse activeKey="1">
+        <Collapse.Panel header="header" key="1" />
+      </Collapse>,
+    );
+
+    expect(container.querySelector('.ant-collapse-arrow')).toHaveAttribute(
+      'aria-label',
+      'expanded',
+    );
+
+    rerender(
+      <Collapse>
+        <Collapse.Panel header="header" key="1" />
+      </Collapse>,
+    );
+
+    expect(container.querySelector('.ant-collapse-arrow')).toHaveAttribute(
+      'aria-label',
+      'collapsed',
+    );
   });
 });

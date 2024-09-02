@@ -6,7 +6,6 @@ import os from 'os';
 import path from 'path';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
-import simpleGit from 'simple-git';
 import chalk from 'chalk';
 import fse from 'fs-extra';
 import difference from 'lodash/difference';
@@ -14,6 +13,7 @@ import minimist from 'minimist';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
+import simpleGit from 'simple-git';
 
 import markdown2Html from './convert';
 
@@ -135,7 +135,7 @@ function getMdImageTag(desc: IImageDesc, extraCaption?: boolean) {
 }
 
 interface IBadCase {
-  type: 'removed' | 'changed';
+  type: 'removed' | 'changed' | 'added';
   filename: string;
   /**
    * compare target file
@@ -150,12 +150,14 @@ interface IBadCase {
 const git = simpleGit();
 
 async function parseArgs() {
-  // parse args from -- --pr-id=123 --base_ref=feature
+  // parse args from -- --pr-id=123 --base_ref=feature --max-workers=2
   const argv = minimist(process.argv.slice(2));
   const prId = argv['pr-id'];
   assert(prId, 'Missing --pr-id');
   const baseRef = argv['base-ref'];
   assert(baseRef, 'Missing --base-ref');
+
+  const maxWorkers = argv['max-workers'] ? parseInt(argv['max-workers'], 10) : 1;
 
   const { latest } = await git.log();
 
@@ -163,6 +165,7 @@ async function parseArgs() {
     prId,
     baseRef,
     currentRef: latest?.hash.slice(0, 8) || '',
+    maxWorkers,
   };
 }
 
@@ -179,29 +182,55 @@ function generateLineReport(
     lineHTMLReport += '| ';
     lineHTMLReport += [
       // add ref as query to avoid github cache image object
-      getMdImageTag({
-        src: `${publicPath}/images/base/${filename}?ref=${currentRef}`,
-        alt: targetFilename || '',
-      }, extraCaption),
-      getMdImageTag({
-        src: `${publicPath}/images/current/${filename}?ref=${currentRef}`,
-        alt: filename,
-      }, extraCaption),
-      getMdImageTag({
-        src: `${publicPath}/images/diff/${filename}?ref=${currentRef}`,
-        alt: '',
-      }, extraCaption),
+      getMdImageTag(
+        {
+          src: `${publicPath}/images/base/${filename}?ref=${currentRef}`,
+          alt: targetFilename || '',
+        },
+        extraCaption,
+      ),
+      getMdImageTag(
+        {
+          src: `${publicPath}/images/current/${filename}?ref=${currentRef}`,
+          alt: filename,
+        },
+        extraCaption,
+      ),
+      getMdImageTag(
+        {
+          src: `${publicPath}/images/diff/${filename}?ref=${currentRef}`,
+          alt: '',
+        },
+        extraCaption,
+      ),
     ].join(' | ');
     lineHTMLReport += ' |\n';
   } else if (type === 'removed') {
     lineHTMLReport += '| ';
     lineHTMLReport += [
-      getMdImageTag({
-        src: `${publicPath}/images/base/${filename}?ref=${currentRef}`,
-        alt: targetFilename || '',
-      }, extraCaption),
+      getMdImageTag(
+        {
+          src: `${publicPath}/images/base/${filename}?ref=${currentRef}`,
+          alt: filename || '',
+        },
+        extraCaption,
+      ),
       `⛔️⛔️⛔️ Missing ⛔️⛔️⛔️`,
       `🚨🚨🚨 Removed 🚨🚨🚨`,
+    ].join(' | ');
+    lineHTMLReport += ' |\n';
+  } else if (type === 'added') {
+    lineHTMLReport += '| ';
+    lineHTMLReport += [
+      '',
+      getMdImageTag(
+        {
+          src: `${publicPath}/images/current/${filename}?ref=${currentRef}`,
+          alt: filename,
+        },
+        extraCaption,
+      ),
+      `🆕🆕🆕 Added 🆕🆕🆕`,
     ].join(' | ');
     lineHTMLReport += ' |\n';
   }
@@ -222,12 +251,13 @@ function generateReport(
   const passed = badCases.length === 0;
 
   const commonHeader = `
+<!-- ${passed ? 'VISUAL_DIFF_SUCCESS' : 'VISUAL_DIFF_FAILED'} -->
+
 ## 👁 Visual Regression Report for PR #${prId} ${passed ? 'Passed ✅' : 'Failed ❌'}
 > **🎯 Target branch:** ${targetBranch} (${targetRef})
   `.trim();
 
   const htmlReportLink = `${publicPath}/report.html`;
-  const addonFullReportDesc = `\n\nCheck <a href="${htmlReportLink}" target="_blank">Full Report</a> for details`;
 
   const fullReport = `> 📖 <a href="${htmlReportLink}" target="_blank">View Full Report ↗︎</a>`;
   if (passed) {
@@ -259,30 +289,35 @@ ${fullReport}
     diffCount += 1;
     if (diffCount <= 10) {
       // 将图片下方增加文件名
-      reportMdStr += generateLineReport(
-        badCase,
-        publicPath,
-        currentRef,
-        true,
-      );
+      reportMdStr += generateLineReport(badCase, publicPath, currentRef, true);
     }
 
-    fullVersionMd += generateLineReport(
-      badCase,
-      publicPath,
-      currentRef,
-      false,
-    );
+    fullVersionMd += generateLineReport(badCase, publicPath, currentRef, false);
   }
 
-  reportMdStr += addonFullReportDesc;
+  reportMdStr += `\n\nCheck <a href="${htmlReportLink}" target="_blank">Full Report</a> for details`;
+
+  // tips for comment `Pass Visual Diff` will pass the CI
+  if (!passed) {
+    reportMdStr += `
+
+-----
+
+If you think the visual diff is acceptable, please check:
+
+- [ ] Visual diff is acceptable
+`;
+  }
 
   // convert fullVersionMd to html
   return [reportMdStr, markdown2Html(fullVersionMd)];
 }
 
 async function boot() {
-  const { prId, baseRef: targetBranch = 'master', currentRef } = await parseArgs();
+  const args = await parseArgs();
+  console.log(`Args: ${JSON.stringify(args)}`);
+
+  const { prId, baseRef: targetBranch = 'master', currentRef, maxWorkers } = args;
 
   const baseImgSourceDir = path.resolve(ROOT_DIR, `./imageSnapshots-${targetBranch}`);
 
@@ -335,8 +370,9 @@ async function boot() {
     .filter((i) => !i.endsWith('.css-var.png'))
     .map((n) => path.basename(n, path.extname(n)));
 
-  for (const basename of cssInJsImgNames) {
-    for (const extname of ['.png', '.css-var.png']) {
+  // compare to target branch
+  const compareTasks = cssInJsImgNames.map((basename) =>
+    ['.png', '.css-var.png'].map((extname) => async () => {
       // baseImg always use cssinjs png
       const baseImgName = `${basename}.png`;
       const baseImgPath = path.join(baseImgSourceDir, baseImgName);
@@ -349,13 +385,13 @@ async function boot() {
       const currentImgExists = await fse.exists(currentImgPath);
       if (!currentImgExists) {
         console.log(chalk.red(`⛔️ Missing image: ${compareImgName}\n`));
-        badCases.push({
+        // base img would use twice so we cannot move it
+        await fse.copy(baseImgPath, path.join(baseImgReportDir, compareImgName));
+        return {
           type: 'removed',
           filename: compareImgName,
           weight: 1,
-        });
-        await fse.copy(baseImgPath, path.join(baseImgReportDir, compareImgName));
-        continue;
+        } as IBadCase;
       }
 
       const mismatchedPxPercent = await compareScreenshots(
@@ -370,19 +406,62 @@ async function boot() {
           chalk.yellow(compareImgName),
           `${(mismatchedPxPercent * 100).toFixed(2)}%\n`,
         );
-        // copy compare imgs(x2) to report dir
+        // copy/move compare imgs(x2) to report dir
+        // base img would use twice so we cannot move it
         await fse.copy(baseImgPath, path.join(baseImgReportDir, compareImgName));
-        await fse.copy(currentImgPath, path.join(currentImgReportDir, compareImgName));
+        await fse.move(currentImgPath, path.join(currentImgReportDir, compareImgName));
 
-        badCases.push({
+        return {
           type: 'changed',
           filename: compareImgName,
           targetFilename: baseImgName,
           weight: mismatchedPxPercent,
-        });
-      } else {
-        console.log('Passed for: %s\n', chalk.green(compareImgName));
+        } as IBadCase;
       }
+      console.log('Passed for: %s\n', chalk.green(compareImgName));
+    }),
+  );
+
+  const { default: pAll } = await import('p-all');
+
+  const compareResults = await pAll(compareTasks.flat(), { concurrency: maxWorkers });
+  for (const compareResult of compareResults) {
+    if (compareResult) {
+      badCases.push(compareResult);
+    }
+  }
+
+  // collect all new added cases
+  const currentImgFileList = readPngs(currentImgSourceDir);
+  /* --- text report stage --- */
+  console.log(
+    chalk.blue(`📊 Text report from pr #${prId} comparing to ${targetBranch}@${targetCommitSha}\n`),
+  );
+  // new images
+  const newImgs = difference(currentImgFileList, baseImgFileList);
+  if (newImgs.length) {
+    console.log(chalk.green(`🆕 ${newImgs.length} images added from this pr`));
+    console.log(chalk.green('🆕 Added images list:\n'));
+    console.log(prettyList(newImgs));
+    console.log('\n');
+  }
+
+  const newImgTask = newImgs.map((newImg) => async () => {
+    await fse.move(
+      path.join(currentImgSourceDir, newImg),
+      path.resolve(currentImgReportDir, newImg),
+    );
+    return {
+      type: 'added',
+      filename: newImg,
+      weight: 0,
+    } as IBadCase;
+  });
+
+  const newTaskResults = await pAll(newImgTask, { concurrency: maxWorkers });
+  for (const newTaskResult of newTaskResults) {
+    if (newTaskResult) {
+      badCases.push(newTaskResult);
     }
   }
 
@@ -416,21 +495,9 @@ async function boot() {
     await fse.readdir(REPORT_DIR),
   );
 
-  const currentImgFileList = readPngs(currentImgSourceDir);
-  /* --- text report stage --- */
-  console.log(
-    chalk.blue(`📊 Text report from pr #${prId} comparing to ${targetBranch}@${targetCommitSha}\n`),
-  );
-  // new images
-  const newImgs = difference(currentImgFileList, baseImgFileList);
-  if (newImgs.length) {
-    console.log(chalk.green(`🆕 ${newImgs.length} images added from this pr`));
-    console.log(chalk.green('🆕 Added images list:\n'));
-    console.log(prettyList(newImgs));
-    console.log('\n');
-  }
+  const validBadCases = badCases.filter((i) => ['removed', 'changed'].includes(i.type));
 
-  if (!badCases.length) {
+  if (!validBadCases.length) {
     console.log(chalk.green('🎉 All passed!'));
     console.log('\n');
     return;
@@ -440,8 +507,9 @@ async function boot() {
   console.log(chalk.red('⛔️ Failed cases:\n'));
   console.log(prettyList(sortedBadCases.map((i) => `[${i.type}] ${i.filename}`)));
   console.log('\n');
-  // let job failed
-  process.exit(1);
+
+  // let job failed. Skip to let CI/CD to handle it
+  // process.exit(1);
 }
 
 boot();

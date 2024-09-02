@@ -72,6 +72,7 @@ demo:
 | variant | 形态变体 | `outlined` \| `borderless` \| `filled` | `outlined` | 5.13.0 |
 | onChange | 输入框内容变化时的回调 | function(e) | - |  |
 | onPressEnter | 按下回车的回调 | function(e) | - |  |
+| onClear | 按下清除按钮的回调 | () => void | - | 5.20.0 |
 
 > 如果 `Input` 在 `Form.Item` 内，并且 `Form.Item` 设置了 `id` 属性，则 `value` `defaultValue` 和 `id` 属性会被自动设置。
 
@@ -125,11 +126,16 @@ interface CountConfig {
 
 `5.16.0` 新增。
 
+> 开发者注意事项：
+>
+> 当 `mask` 属性的类型为 string 时，我们强烈推荐接收单个字符或单个 emoji，如果传入多个字符或多个 emoji，则会在控制台抛出警告。
+
 | 参数 | 说明 | 类型 | 默认值 | 版本 |
 | --- | --- | --- | --- | --- |
 | defaultValue | 默认值 | string | - |  |
 | disabled | 是否禁用 | boolean | false |  |
 | formatter | 格式化展示，留空字段会被 ` ` 填充 | (value: string) => string | - |  |
+| mask | 自定义展示，和 `formatter` 的区别是不会修改原始值 | boolean \| string | `false` | `5.17.0` |
 | length | 输入元素数量 | number | 6 |  |
 | status | 设置校验状态 | 'error' \| 'warning' | - |  |
 | size | 输入框大小 | `small` \| `middle` \| `large` | `middle` |  |
